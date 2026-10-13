@@ -1,0 +1,34 @@
+name: Sign Shortcut
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sign:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Diagnose environment
+        run: |
+          sw_vers
+          shortcuts --version 2>&1 || true
+          shortcuts sign --help 2>&1 | head -20 || true
+
+      - name: Convert XML to binary plist
+        run: plutil -convert binary1 shortcut.xml -o in.shortcut
+
+      - name: Sign with Apple
+        run: shortcuts sign --mode anyone --input in.shortcut --output out.shortcut
+
+      - name: Verify output
+        run: |
+          ls -la out.shortcut
+          xxd -l 4 out.shortcut
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-shortcut
+          path: out.shortcut
